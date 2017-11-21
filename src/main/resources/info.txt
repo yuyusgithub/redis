@@ -1,9 +1,55 @@
 redis特性
-    速度快
-    持久化
-    多种数据结构
+    速度快  10W OPS  读写 存储在内存之中 主要原因 线程模式：单线程
+    持久化 数据保存在内存之中，但将数据异步的保存在磁盘上
+    多种数据结构 string hash linkList set ,sorted sets;bitMaps 位图  ；HyperLogLog：嘲笑内存唯一值技术（可能存在误差率）；GEO地理位置定位
     支持多种语言
-    功能丰富
-    简单
+    功能丰富 发布订阅 LUA脚本  简单事务 pipeline
+    简单 23000行代码，不依赖外部库 ，单线程线程模型
     主从复制
     高可用，分布式
+使用场景
+    缓存系统
+
+    计数器
+    消息队列
+    排行榜
+    社交网络
+    实时系统
+redis 的安装与部署
+    获取 tar.gz的包  wget http://download.redis.io/releases/redis-3.0.7.tar.gz
+    tar -zxvf xxxx.tar.gz
+    ln -s redis-3.0.7 redis 建立软连接
+    make  在src目录中出现 如下6个文件
+        redis-server  redis 服务器
+        redis-cli redis  命令行客户端
+        redis-benchmark  基准测试，测试性能
+        redis-check-aof  对aof文件进行修复
+        redis-check-dump RDB文件修复工具
+        redis-sentinel  启动 redis-sentinel 节点，高可用
+    make install 会将上述6个拷贝到usr/local/bin目录下
+
+    三种启动方法
+        最简启动  执行redis-server  命令
+        动态参数启动   6379 redis-server --port 6380
+        配置文件启动(推荐)
+    redis 客户端连接
+        redis-cli -h 127.0.0.1 -p 6379
+        test:  ping     return  pang
+    redis 返回值
+        ping -- pang
+        错误回复
+        整数回复
+        字符串回复
+        多行字符串回复
+redis 常用配置
+    daemonize 是否为守护线程 yes/no(建议yes)
+    port  端口
+    logfile 日志名
+    dir  redis工作目录 日志，和持久化文件  6379-》merz 意大利女歌手的名字
+    查看配置文件时，将一些#，和一些空格去掉 cat redis.conf | grep -v "#" | grep -v "^s" > redis-new.conf
+
+
+
+
+
+
