@@ -46,7 +46,73 @@ redis 常用配置
     port  端口
     logfile 日志名
     dir  redis工作目录 日志，和持久化文件  6379-》merz 意大利女歌手的名字
-    查看配置文件时，将一些#，和一些空格去掉 cat redis.conf | grep -v "#" | grep -v "^s" > redis-new.conf
+    查看配置文件时，将一些#，和一些空格去掉 cat redis.conf | grep -v "#" | grep -v "^$" > redis-6380.conf
+    建议使用redis-server redis.conf 这样的配置文件的方式启动程序
+
+redisAPI的使用和理解
+    通用命令
+        keys *   热备从节点  scan   O(n)
+            keys he*
+            keys he[h-j]*
+            keys ph?
+            等等通配符
+        dbsize  算出key的总数  O(1)
+        exists key  O(1)
+        del key  O(1)
+        expire key seconds 过期时间  O(1)
+        type key  O(1)
+        ttl key 查看剩余过期时间  O(1)
+        persist key 去掉key的过期时间  O(1)
+        type key  返回key的类型  string hash list set zset none  O(1)
+    字符串类型
+    哈希
+    列表
+    集合
+    有序集合
+
+    单线程
+        所有命令都是串行的，单线程的，一个瞬间，只会执行一条命令
+        为什么单线程还这么块？
+        1.纯内存*
+        2.非阻塞IP
+        3.避免了线程切换和竞争
+
+        拒绝长命令 keys，flushall 等，会使线程阻塞
+
+    字符串
+        结构和命令
+            key          value 不能大于512MB
+            常用于 缓存 计数器  分布式锁 等等
+            incr 自增1 decr自建1 incrby 自增n decrby 自减1
+            实现 网站用户访问量
+            incr userid:pageview
+
+            缓存视频的基本信息
+
+            多客户端并发获取自增id
+
+            set key value  覆盖
+            setnx key value  不存在，再能设置，新增
+            set key value xx 存在，才能设这，更新
+
+            mget key1 key2
+            mset key1 value1 key2 value2
+
+            getset key newvalue 设置新值，返回老值
+            append key value 对某一个key的value进行追加
+            strlen key 获取字符串长度，注意中文
+
+            incrbyfloat key 3.5 自增
+            getrange key 0 3 获取字符串中的某些值
+            setrange key 0 3
+        内部编码
+
+
+        哈希
+            特点
+            重要api
+            hash vs string
+
 
 
 
