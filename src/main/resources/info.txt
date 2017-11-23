@@ -111,8 +111,118 @@ redisAPI的使用和理解
         哈希
             特点
             重要api
+            hget hget key field
+            hset key field value
+            hdel key field
+            hexists key field
+            hlen key  field的数量
+            hmget key field1 field2
+            hmset key field1 value1 field2 value2
+            hgetall key 返回该key的所有的field 和 value   尽量不要用，比较危险
+            hval key 返回该key的所有的 value
+            hkeys key 返回该key所有的 field
+
+            hsetnx key field value 如果已经存在，则失败
+            hincrby key field intCounter
+            hincrbyfloat key field floatCounter
+
+            实战
+            页面访问量
+            hincrby user:1:info pageview count
+            缓存基本信息
+
             hash vs string
 
+        列表
+            特点
+            列表有序的，可以重复的 ，可以从左右插入弹出的
+
+            重要API
+            rpush key value1 value2 ...
+            lpush key value1 value2 ...
+
+            linsert key before|after value newValue  重复的呢？？
+            lpop key 弹出元素
+            rpop key 右边弹出元素
+
+            lrem key count value
+            count > 0 从左到右 ，从列表中删除count个value相等的值；(因为存在相同的元素)
+            count < 0 从右到左 ，从列表中删除count个value相等的值；(因为存在相同的元素)
+            count = 0 删除所有的与value相等的值
+
+            ltrim key start end
+            lrange key start end (包含start end)
+            lindex key index
+            llen
+            lset key index newValue
+            blpop key timeout  timeout = 0永远不阻塞
+            brpop
+            LPUSH + LPOP = Stack
+            LPUSH + RPOP = Queue
+            LPUSH + LTRIM = Capped Collection
+            LPUSH + BRPOP = Message Queue
+
+            实战
+            微博 timeLine
+
+        集合
+            sadd key element 如果存在则失败
+
+        有序集合
+Redis 客户端 Jedis
+    TCP协议
+
+瑞士军刀
+    慢查询
+        生命周期
+            发送命令 - 排队 - 执行命令 - 返回结果
+            慢查询发生在第三阶段
+
+        两个配置
+            slowlog-max-len = 128
+            慢查询 有自己的队列，长度是固定的，保存在内存中，一开始的可能被清空
+            slowlog-log-slower-than (us)  = 10000
+            如果想让所有的都进入慢查询 则设置为0
+            不记录 <0
+            可以写入配置文件
+            可以动态配置
+            config set slowlog-max-len 1000
+        三个命令
+            slowlog get[n] n条慢查询
+            slowlog len 长度
+            slowlog reset 清空
+        运维经验
+            1 slowlog-log-slower-than不要过大，默认10ms，通常设置1ms
+            2 slowlog-max-len 不要过小 一般1000左右
+            3 理解命令生命周期
+            4 定期持久化慢查询（how to do？？）
+pipeline 功能  流水线
+    什么是流水线
+        将多次命令打包，一次传出，一次返回
+    客户端的实现
+
+    与原生操作对比
+    使用建议
+        注意pipeline 的携带数量
+        pipleline只能作用在一个节点上
+        M操作与pipleline的区别
+发布订阅
+    角色
+        发布者
+        订阅者
+        频道
+    模型
+    API
+        publish channel message
+        subscribe [channel]
+        unsubscribe [channel]
+        psubscribe [pattern...]
+
+Bitmap
+    位图
+    相关命令
+    setbit key offset value
+    独立用户统计
 
 
 
