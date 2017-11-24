@@ -56,6 +56,7 @@ redisAPI的使用和理解
             keys he[h-j]*
             keys ph?
             等等通配符
+        FLUSHALL 删除所有的数据
         dbsize  算出key的总数  O(1)
         exists key  O(1)
         del key  O(1)
@@ -350,8 +351,32 @@ Bitmap
 
 redis复制的原理与优化
     什么是主从复制
+        机器故障（高可用）
+        容量平静（分布式）
+        qps瓶颈
     复制配置
+        两种方式
+        slaveof 命令
+        在A上执行 slaveof B A就成为了B的子节点
+
+        取消复制
+        slaveof no one 但是数据不会删除
+        主给从同步数据的时候，会先清除从节点数据
+
+        配置s
+        slaveof ip port
+        slave-read-only yes
+
+        info reapplication 查看分片信息
+
     全量复制和部分复制
+    故障处理
+    常见的运维问题
+        读写分离
+
+        主从不一致
+        避免全量复制
+        避免复制风暴
 
 
 
