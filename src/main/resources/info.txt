@@ -1,7 +1,7 @@
 redis特性
     速度快  10W OPS  读写 存储在内存之中 主要原因 线程模式：单线程
     持久化 数据保存在内存之中，但将数据异步的保存在磁盘上
-    多种数据结构 string hash linkList set ,sorted sets;bitMaps 位图  ；HyperLogLog：嘲笑内存唯一值技术（可能存在误差率）；GEO地理位置定位
+    多种数据结构 string hash linkList set ,sorted sets;bitMaps 位图  ；HyperLogLog：超小内存唯一值技术（可能存在误差率）；GEO地理位置定位
     支持多种语言
     功能丰富 发布订阅 LUA脚本  简单事务 pipeline
     简单 23000行代码，不依赖外部库 ，单线程线程模型
@@ -78,7 +78,7 @@ redisAPI的使用和理解
         2.非阻塞IP
         3.避免了线程切换和竞争
 
-        拒绝长命令 keys，flushall 等，会使线程阻塞
+        拒绝长命令 keys *，flushall 等，会使线程阻塞
 
     字符串
         结构和命令
@@ -255,7 +255,7 @@ Bitmap
                 dbfilename dump.rdb(默认)
                 stop-writes-on-bgsave-error yes 出现问题，停止写入
                 rdbcompression yes 是否采用压缩的格式
-                rdbchecksum yes
+                rdbchecksum yes 是否检验？？
 
                 推荐配置
                 dbfilename dump-${port}.rdb
