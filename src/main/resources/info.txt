@@ -394,8 +394,124 @@ redis Sentinel （哨兵）…………6的飞起
 
     安装和配置
     1.配置开启主从节点
+        redis主节点
+        如：配置redis-7000.conf 配置文件
+        port 7000
+        daemonize yes
+        pidfile /var/run redis-7000.pid
+        logfile "7000.log"
+        dir "...../redis/data"
+
+        从节点
+        slave1  其实配置是一样的，不同的是需要配置slave of 属性
+        port 7001
+        daemonize yes
+        pidfile /var/run redis-7001.pid
+        logfile "7001.log"
+        dir "...../redis/data"
+        slaveof 127.0.0.1 7000
+
+        slave2  其实配置是一样的，不同的是需要配置slave of 属性
+        port 7002
+        daemonize yes
+        pidfile /var/run redis-7002.pid
+        logfile "7002.log"
+        dir "...../redis/data"
+        slaveof 127.0.0.1 7000
+
     2.配置开启sentinel监控主节点（sentinel可以理解成为特殊的redis）
+        sentinel 也是分布式的，真正做到sentinel也是高可用的
+        sentinel 的主要配置
+        port ${port}
+        daemonize yes  以守护进程的方式启动
+        dir "....../redis/data"
+        logfile "$sentinel-${port}.log"
+        sentinel monitor mymaster 127.0.0.1 7000 2  mymaster是主节点的名字   2是超过2个sentinel认为master是有问题的
+            sentinel moniter <masterName> <ip> <port> <quorum(法定人数)>
+        sentinel down-after-milliseconds mymaster 30000     (ms) 超过多久没有回应，认为是有问题的
+        sentinel parallel-syncs mymaster 1 复制 ？？ 每次只能复制一个？没太懂
+        sentinel failver-timeout mymaster 180000
+
+        这里的mymaster，是干什么用的呢，就是一个名字；因为sentinel可以同时见识多套：redis的集群，mymaster就是用来区分这些集群的
+        在配置sentinel的时候，我们只配置主节点的信息，却没有配置从节点的信息；以为sentinel 会在主节点上执行一个类似info reapplication的命令，就可以获取到从节点的信息了
+
+        一个查看节点信息的命令  ：redis-cli -p7000 info replication
+
+        将注释和空行都去掉： cat sentinel.conf | grep -v "#" | grep -v "^$"
     3.实际应该部署在多台设备上
     4.详细配置节点
+        一个查看节点信息的命令  ：redis-cli -p7000 info replication
+        将注释和空行都去掉： cat sentinel.conf | grep -v "#" | grep -v "^$"
+
+        启动sentinel命令
+        redis-sentinel redis-sentinel.conf
+
+        连接sentinel：redis-cli -p 26379
+        启动之后，sentinel会重写配置文件，比如，加入slave的相关信息
+
+java客户端连接
+    步骤
+    1.首先要获取到sentinel的集合，因为我们不知道到底哪个是可用的；
+    2.通过集合+master-name 去便利集合，获取一个可用的sentinel节点；
+    3.在sentinel节点上 执行get-master-addr-by-name 来获取 master节点的地址和端口
+    4.对master节点执行一次role或者role replication 来确定一些这孙子到底是不是阵中的master节点
+    5.那么，如果master发生了故障，客户端是怎么知道的呢？？？
+        这里用到了redis的发布订阅的功能呢， 客户端去订阅sentinel的某一个频道，当master发生变化的时候
+        sentinel就会pubulish一条信息，这样客户端就能兼听得到，然后重新连接新的客户端就是了；这样，客户端不用每次都去获取master信息
+
+    故障转移，其实是需要时间的，大约30秒之后，才会发现master down掉了,然后开始故障转移
+
+    从日志看出
+    当7000被杀掉的时候，7002一直处于与master失联的一个状态，一直请求失败，但是很快，他接受到了一条请求，让他成为新的master
+    然后，有一个配置重启的过程，故障转移成功，7001开始从7001上面复制数据
+    那sentinel发生了什么呢？
+    首先，其中一个sentinel节点他认为7000发生了故障，然后确定了客观下线（也就是说，有超过一定数量的sentinel节点，也认为7000出现了故障）
+    这个节点希望成为一个领导者
+    然后其他的sentinel节点给他投了票
+    于是他成了sentinel的master
+    他开始选择一个合适的slave节点，然后发送了slaveof-noone命令给了这个slave节点，然后开始等待slave晋升，同事发送请求给其他的slave
+    让他们从新的master上进行数据的复制
+    他还会给7000一个odown 的一个表示，目的上当7000再次上线的时候，他会让7000区新的master上进行数据的复制
+    整个过程转换成功
+    其他的sentinel节点，没什么任务，他们主要是负责发现问题，然后选举一个master，具体的事情由master去做就是了
+
+setinel的三个定时任务
+    为了保证这个过程
+    sentisentinel内部有三个定时任务来保证完成
+    1.每10秒每个sentinel会对master和slave 做info操作，这样做的目的是：
+        1.发现新的slave节点，我们在配置sentinel的时候，并没有配置slave的信息，但是sentinel启动之后，conf文件会被重写
+            出现了slava的信息，说明sentinel会对master和slave做info操作
+        2.发现主从关系
+    2.没过两秒钟，每个sentinel会通过master上的一个频道（_sentinel_:hello）进行一个消息的发布和订阅
+        1.相互交换对节点的看法，和自身的信息，从而达成一致；这也就是为什么当我们加入一个sentinel节点的时候，其他的sentinel
+            节点会立刻感知出来，就是因为加入了这个频道来获取彼此的信息
+    3.每一秒，每个sentinel节点会对其他的sentinel和redis执行一个ping的操作，相当于进行一个心跳检测
+
+主管下线和客观下线
+    sentinel monitor mymaster 127.0.0.1 7000 2  mymaster
+        sentinel moniter <masterName> <ip> <port> <quorum(法定人数)>
+    sentinel down-after-milliseconds mymaster 30000     (ms) 这里就是，用于做主管下线的判断依据
+    主观下线：每个sentinel节点对于redis节点失败的“偏见”
+    客观下线：说有sentinel节点对于redis节点失败“达成共识”（超过quorum）
+    sentinel会通过  sentinel is-master-down-by-addr 命令来交流对下线的看法
+    quorum 建议  节点数/2 + 一 建议sentinel节点的数量是一个奇数
+领导的选举
+    只有一个sentinel节点来完成故障转移
+    选举：通过sentinel is-master-down-by-addr 来都希望自己成为领导者
+    步骤如下：
+    1.每个做主管下线的sentinel 节点会想其他节点发送命令，要求及自己成为领导者
+    2.收到命令的sentinel节点如果没有同意过其他的节点，就会同意，否则拒绝
+    3.如果sentinel 节点发现自己的票数超过一半，而且超过quorum，那么他将成为领导者
+    4.经过了这个过程，其实会出现多个领导者，那么，一个时间后，会进行重新的选举，直到出现唯一的领导者
+
+故障转移（sentinel的领导者已经产生）
+    1.从slave节点中选出一个“合适的”节点作为新的master节点
+    2.对上述的节点执行slaveof no one 命令其成为master节点
+
+
+
+
+
+
 
 
