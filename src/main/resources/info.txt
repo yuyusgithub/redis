@@ -377,6 +377,25 @@ redis复制的原理与优化
         主从不一致
         避免全量复制
         避免复制风暴
+redis Sentinel （哨兵）…………6的飞起
+    主从复制高可用？架构说明
 
+    sentinel 会对各个redis节点进行监控
+    客户端这个时候从sentinel获取数据，sentinel来维护谁是master谁是slave
+    当master宕机了，会执行如下的操作
+    1.多个sentinel发现并确定master有问题
+    2.选举一个sentinel作为领导
+    3.选举出一个slave作为master
+    4.通知其余的slave成为新的master的slave
+    5.同事客户端主从的变化
+    6.等待老的master复活成为新的master的slave
+
+    sentinel还可以同事监控多套master-slave
+
+    安装和配置
+    1.配置开启主从节点
+    2.配置开启sentinel监控主节点（sentinel可以理解成为特殊的redis）
+    3.实际应该部署在多台设备上
+    4.详细配置节点
 
 
