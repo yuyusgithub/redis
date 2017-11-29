@@ -566,11 +566,70 @@ Redis Cluster
                 这样的算法，分散度比较好，比如，有3个节点，就对三进行取余，有四个节点，就对4进行取余， 这样就能知道数据在哪个节点上分布
                 不过这样做，当有节点上线或者下线的时候，数据就要重新迁移，80%左右，这样是灾难性的；
                 在数据较小的情况下，建议翻倍增量，比如原来有3个节点，要增加，就增加到6个，这样的数据迁移会小一些，大约50%左右
-            一致性哈希 ，数分布在一个32位的空间内，0-2的31次方，可以看做是一个圆环（token环），然后顺时针寻址；详情去网上搜索，有点复杂
+            一致性哈希 ，数分布在一个32位的空间内，0-2的32次方，可以看做是一个圆环（token环），然后顺时针寻址；详情去网上搜索，有点复杂
+                这样当节点上线或者下线的时候，受到影响的范围十分有限，节点越多，影响越小
                 这个算法在memcache上使用的比较广泛
+            虚拟槽分区 0-16383
+                每一个槽映射了一个数据的子集，一般比节点数大
+                良好的哈希函数：CRC16
+                服务端管理节点，槽，数据：如redis cluster
+
+                CRC（key）%16383 发送给任意一个节点，每个节点发现归自己管理，就保存；
 
     搭建集群
+        基本架构
+            节点
+                cluster-enabled:yes
+            meet
+            指派槽
+
+            复制
+                高可用
+                分片
+        安装配置
+            原生命令安装
+                理解架构
+                    配置开启节点
+                        port ${port}
+                        daemonize yes
+                        dir ""
+                        dbfilename "dump-${port}.rdb"
+                        logfile "${port}.log"
+                        cluster-enabled:yes     ******这个配置比较重要
+                        cluster-config-file nodes-${port}.conf   节点的配置
+                        cluster-require-full-coverage no  是不是所有的节点，全部争创，才提供服务
+                        开启节点
+                        redis-server xxxx.conf
+                    meet
+                        resid-cli -h 127.0.0.1 -p 7000 cluster meet 127.0.0.1 7001
+                        resid-cli -h 127.0.0.1 -p 7000 cluster meet 127.0.0.1 7002
+                        各种数据的感知，都通过这个命令完成
+                        之后所有节点都能两两彼此感知
+
+                        cluster节点的主要配置
+                            cluster-enabled yes
+                            cluster-node-timeout 15000  15s  故障转移的一个时间，或者说是节点超时的一个时间，主管下线时间，ping最长容忍时间的1/2
+                            cluster-config-file "nodes.conf"
+                            cluster-require-full-coverage no 是不是所有的节点，全部争创，才提供服务
+                    指派槽  （即使上面都配置正确了，但是没有分配槽的话，节点都为down 也就是下线状态）
+                        比如我们现在有6个节点，3主3从
+                        cluster addslots slot [slot...]
+                        redis-cli -h 127.0.0.1 -p 7000 cluster addslots [0...5461]
+                        redis-cli -h 127.0.0.1 -p 7000 cluster addslots [5462...10922]
+                        redis-cli -h 127.0.0.1 -p 7000 cluster addslots [10923...16383]
+                    主从关系的分配
+                        cluster replicate node-id（集群节点的ID）(和runid是不同的，runid重启后会改变)（如何获取见下）
+                        redis-cli -h 127.0.0.1 -p 7003 cluster replicate ${node-id-7000}
+                        redis-cli -h 127.0.0.1 -p 7004 cluster replicate ${node-id-7001}
+                        redis-cli -h 127.0.0.1 -p 7005 cluster replicate ${node-id-7002}
+
+
+                    redis-cli -p 7000 cluster nodes  可以获取当前的节点的节点ID，也就是上面说的那个node-id
+                    redis-cli -p 7000 info 查看集群信息
+            官方工具安装
+                简单的配置，和一键安装
     集群伸缩
+
     客户端路由
     集群原理
     开发运维常见的问题
